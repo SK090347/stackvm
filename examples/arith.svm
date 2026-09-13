@@ -1,0 +1,10 @@
+; quick smoke: (3 + 4) * 2 - 1 = 13
+CONST 3
+CONST 4
+ADD
+CONST 2
+MUL
+CONST 1
+SUB
+PRINT
+HALT

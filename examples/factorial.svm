@@ -1,0 +1,27 @@
+; iterative factorial — prints n!
+; local0 = n, local1 = acc
+
+CONST 6
+SET_LOCAL 0          ; n = 6
+CONST 1
+SET_LOCAL 1          ; acc = 1
+
+loop:
+GET_LOCAL 0
+CONST 1
+LT                   ; n < 1 ?
+JUMP_IF_FALSE body
+GET_LOCAL 1
+PRINT
+HALT
+
+body:
+GET_LOCAL 1
+GET_LOCAL 0
+MUL
+SET_LOCAL 1          ; acc *= n
+GET_LOCAL 0
+CONST 1
+SUB
+SET_LOCAL 0          ; n -= 1
+JUMP loop

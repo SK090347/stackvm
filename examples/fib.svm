@@ -1,0 +1,28 @@
+; recursive fibonacci via CALL/RETURN
+; prints fib(10)
+
+CONST 10
+CALL fib 1
+PRINT
+HALT
+
+fib:
+; local0 = n
+GET_LOCAL 0
+CONST 2
+LT
+JUMP_IF_FALSE fib_rec
+GET_LOCAL 0          ; return n when n < 2
+RETURN
+
+fib_rec:
+GET_LOCAL 0
+CONST 1
+SUB
+CALL fib 1           ; fib(n-1)
+GET_LOCAL 0
+CONST 2
+SUB
+CALL fib 1           ; fib(n-2)
+ADD
+RETURN
