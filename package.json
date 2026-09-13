@@ -1,0 +1,52 @@
+{
+  "name": "stackvm",
+  "version": "0.1.0",
+  "description": "Tiny bytecode stack VM in TypeScript",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "cli": "tsx src/cli.ts",
+    "run:svm": "tsx src/cli.ts run"
+  },
+  "bin": {
+    "stackvm": "dist/cli.js"
+  },
+  "keywords": [
+    "bytecode",
+    "virtual-machine",
+    "stack-machine",
+    "interpreter",
+    "typescript"
+  ],
+  "author": "Sumit Kumar Ta <SK090347>",
+  "license": "MIT OR Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SK090347/stackvm.git"
+  },
+  "homepage": "https://github.com/SK090347/stackvm#readme",
+  "bugs": {
+    "url": "https://github.com/SK090347/stackvm/issues"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "LICENSE",
+    "LICENSE-APACHE",
+    "NOTICE"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
