@@ -1,130 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>stackvm — live demo</title>
-<style>
-  :root{--bg:#0d1117;--card:#161b22;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--ok:#3fb950}
-  *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text)}
-  main{max-width:920px;margin:0 auto;padding:32px 18px 64px}
-  h1{font-size:1.6rem;margin:0 0 6px} .sub{color:var(--muted);margin-bottom:20px}
-  a{color:var(--accent)} textarea,pre{width:100%;background:var(--card);border:1px solid #30363d;border-radius:10px;color:var(--text);padding:12px;font:13px/1.45 ui-monospace,monospace}
-  textarea{min-height:220px;resize:vertical} .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
-  button{background:#238636;border:0;color:#fff;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer}
-  button.secondary{background:#21262d;border:1px solid #30363d}
-  pre{min-height:120px;white-space:pre-wrap}
-  .ok{color:var(--ok)}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>stackvm — interactive bytecode demo</title>
+  <meta name="description" content="Tiny stack-based bytecode VM playground. Run CONST/ADD/PRINT/HALT in the browser." />
+  <style>
+    :root {
+      --bg:#070b12; --panel:#101826; --text:#e8eef7; --muted:#8fa0b8;
+      --accent:#5ec8ff; --accent2:#8b7cff; --ok:#34d399; --bad:#fb7185; --border:#1e2a3d;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; min-height:100vh; color:var(--text);
+      font-family: Inter, "IBM Plex Sans", system-ui, sans-serif;
+      background:
+        radial-gradient(900px 420px at 12% -8%, #163056 0%, transparent 55%),
+        radial-gradient(700px 380px at 95% 0%, #2a1f55 0%, transparent 50%),
+        var(--bg);
+    }
+    main { max-width: 1080px; margin: 0 auto; padding: 2rem 1.2rem 4rem; }
+    .hero { display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:flex-end; margin-bottom:1.25rem; }
+    h1 { margin:0 0 .35rem; font-size:clamp(1.6rem, 3.5vw, 2.2rem); letter-spacing:-.025em; }
+    h1 em { font-style:normal; color:var(--accent); }
+    .sub { margin:0; color:var(--muted); max-width:64ch; line-height:1.55; }
+    .actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+    button, .linkbtn {
+      appearance:none; border:1px solid var(--border); background:#152033; color:var(--text);
+      border-radius:10px; padding:.55rem .95rem; font:inherit; font-weight:600; cursor:pointer; text-decoration:none;
+    }
+    button.primary { background:linear-gradient(135deg, var(--accent), var(--accent2)); border:none; color:#061018; }
+    button:hover, .linkbtn:hover { filter:brightness(1.08); }
+    .layout { display:grid; grid-template-columns: 1.2fr .8fr; gap:12px; }
+    @media (max-width:860px){ .layout { grid-template-columns:1fr; } }
+    .panel { background:rgba(16,24,38,.92); border:1px solid var(--border); border-radius:14px; padding:14px; }
+    .panel h2 { margin:0 0 8px; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    textarea {
+      width:100%; min-height:340px; resize:vertical; border-radius:10px; border:1px solid var(--border);
+      background:#0a121c; color:#dce8f7; font-family:var(--mono); font-size:13px; line-height:1.5; padding:14px; outline:none;
+    }
+    textarea:focus { border-color:#3b6ea5; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .chip { font-size:12px; border:1px solid var(--border); border-radius:999px; padding:4px 10px; color:var(--muted); background:#0d1520; cursor:pointer; }
+    .chip:hover { color:var(--text); border-color:#3b6ea5; }
+    #status, #out, #stack {
+      font-family:var(--mono); font-size:13px; background:#0a121c; border:1px solid var(--border);
+      border-radius:10px; padding:12px; min-height:72px; white-space:pre-wrap; word-break:break-word;
+    }
+    #status.ok { color:var(--ok); } #status.err { color:var(--bad); }
+    .hint { color:var(--muted); font-size:.82rem; margin-top:10px; line-height:1.5; }
+    footer { margin-top:1.75rem; color:var(--muted); font-size:.85rem; }
+    a { color:var(--accent); }
+    code { background:#152033; padding:.1em .35em; border-radius:4px; }
+  </style>
 </head>
 <body>
 <main>
-  <h1>stackvm</h1>
-  <p class="sub">Browser demo of the bytecode stack VM · <a href="https://github.com/SK090347/stackvm">source</a></p>
-  <p>Edit a tiny <code>.svm</code>-style program, then Run. Opcodes: CONST, ADD, SUB, MUL, DIV, PRINT, HALT, plus JUMP / CALL in the full repo.</p>
-  <textarea id="src">; factorial 6
-CONST 6
-STORE 0
-CONST 1
-STORE 1
-LOOP:
-LOAD 0
-CONST 1
-LT
-JUMP_IF  DONE
-LOAD 1
-LOAD 0
-MUL
-STORE 1
-LOAD 0
-CONST 1
-SUB
-STORE 0
-JUMP LOOP
-DONE:
-LOAD 1
-PRINT
-HALT
-</textarea>
-  <div class="row">
-    <button id="run">Run</button>
-    <button class="secondary" id="exFib">Load fib(10)</button>
-    <button class="secondary" id="clear">Clear output</button>
+  <div class="hero">
+    <div>
+      <h1><em>stackvm</em> playground</h1>
+      <p class="sub">Tiny stack-based bytecode VM. Type real opcodes in a textarea — CONST, ADD, PRINT, HALT and friends — and watch the stack + print stream. Same mental model as the TypeScript engine in the repo.</p>
+    </div>
+    <div class="actions">
+      <a class="linkbtn" href="https://github.com/SK090347/stackvm" target="_blank" rel="noopener">GitHub</a>
+      <button class="primary" id="run" type="button">Run</button>
+    </div>
   </div>
-  <pre id="out" class="ok">output…</pre>
+  <div class="layout">
+    <section class="panel">
+      <h2>Program (.svm text)</h2>
+      <textarea id="code" spellcheck="false" aria-label="SVM program"></textarea>
+      <div class="chips">
+        <button class="chip" data-ex="arith" type="button">arith → 13</button>
+        <button class="chip" data-ex="print" type="button">print 42</button>
+        <button class="chip" data-ex="countdown" type="button">countdown</button>
+        <button class="chip" data-ex="locals" type="button">locals</button>
+      </div>
+      <p class="hint">Opcodes: CONST ADD SUB MUL DIV NEG LT EQ JUMP JUMP_IF_FALSE GET_LOCAL SET_LOCAL PRINT POP HALT · labels + <code>;</code> comments</p>
+    </section>
+    <section class="panel">
+      <h2>Status</h2>
+      <div id="status" class="ok">ready</div>
+      <h2 style="margin-top:12px">Printed output</h2>
+      <div id="out">(none yet)</div>
+      <h2 style="margin-top:12px">Final stack</h2>
+      <div id="stack">[]</div>
+    </section>
+  </div>
+  <footer>MIT OR Apache-2.0 · <a href="https://github.com/SK090347">Sumit Kumar Ta</a> · <code>npm i && npm test && npx tsx src/cli.ts run examples/arith.svm</code></footer>
 </main>
 <script>
-// Minimal educational interpreter (subset) for Pages demo
-const fib = `; fib(10)
-CONST 10
-STORE 0
-CONST 0
-STORE 1
-CONST 1
-STORE 2
-LOOP:
-LOAD 0
-CONST 0
-EQ
-JUMP_IF DONE
-LOAD 1
-LOAD 2
-ADD
-STORE 3
-LOAD 2
-STORE 1
-LOAD 3
-STORE 2
-LOAD 0
-CONST 1
-SUB
-STORE 0
-JUMP LOOP
-DONE:
-LOAD 1
-PRINT
-HALT
-`;
-const out=document.getElementById('out');
-document.getElementById('exFib').onclick=()=>{document.getElementById('src').value=fib};
-document.getElementById('clear').onclick=()=>{out.textContent=''};
-document.getElementById('run').onclick=()=>{
-  try{ out.textContent = run(document.getElementById('src').value).join('\\n') || '(no PRINT)'; }
-  catch(e){ out.textContent = 'error: '+e.message; out.className=''; }
+const Op = {
+  CONST:0, ADD:1, SUB:2, MUL:3, DIV:4, NEG:5, LT:6, EQ:7,
+  JUMP:8, JUMP_IF_FALSE:9, GET_LOCAL:12, SET_LOCAL:13, PRINT:14, HALT:15, POP:16
 };
-function run(text){
-  const lines=text.split(/\\n/).map(l=>l.replace(/;.*/,'').trim()).filter(Boolean);
-  const labels={}; const code=[];
-  for(const line of lines){
-    if(line.endsWith(':')){ labels[line.slice(0,-1)] = code.length; continue; }
-    const [op,...rest]=line.split(/\\s+/);
-    code.push([op.toUpperCase(), rest.join(' ')]);
+const NAME = Object.create(null);
+for (const [k,v] of Object.entries(Op)) NAME[k] = v;
+
+function assemble(src) {
+  const lines = src.split("\n");
+  const labels = Object.create(null);
+  const approx = [];
+  for (let line of lines) {
+    const semi = line.indexOf(";");
+    if (semi >= 0) line = line.slice(0, semi);
+    line = line.trim();
+    if (!line) continue;
+    if (line.endsWith(":")) { labels[line.slice(0,-1)] = approx.length; continue; }
+    const parts = line.split(/\s+/);
+    const op = parts[0].toUpperCase();
+    if (!(op in NAME)) throw new Error("unknown op: " + parts[0]);
+    approx.push({ op, args: parts.slice(1) });
   }
-  const stack=[]; const locals=Object.create(null); const prints=[];
-  let ip=0, steps=0;
-  while(ip<code.length && steps++<100000){
-    const [op,arg]=code[ip++];
-    const num=()=>Number(arg);
-    switch(op){
-      case 'CONST': stack.push(num()); break;
-      case 'ADD': {const b=stack.pop(),a=stack.pop(); stack.push(a+b); break;}
-      case 'SUB': {const b=stack.pop(),a=stack.pop(); stack.push(a-b); break;}
-      case 'MUL': {const b=stack.pop(),a=stack.pop(); stack.push(a*b); break;}
-      case 'DIV': {const b=stack.pop(),a=stack.pop(); stack.push(a/b); break;}
-      case 'LT': {const b=stack.pop(),a=stack.pop(); stack.push(a<b?1:0); break;}
-      case 'EQ': {const b=stack.pop(),a=stack.pop(); stack.push(a===b?1:0); break;}
-      case 'STORE': locals[arg]=stack.pop(); break;
-      case 'LOAD': stack.push(locals[arg]??0); break;
-      case 'JUMP': ip=labels[arg]; break;
-      case 'JUMP_IF': if(stack.pop()) ip=labels[arg]; break;
-      case 'PRINT': prints.push(String(stack[stack.length-1])); break;
-      case 'HALT': return prints;
-      case 'POP': stack.pop(); break;
-      default: throw new Error('unknown op '+op);
+  const code = [];
+  const emitAt = [];
+  const fixups = [];
+  for (const inst of approx) {
+    emitAt.push(code.length);
+    code.push(NAME[inst.op]);
+    if (inst.op === "CONST" || inst.op === "GET_LOCAL" || inst.op === "SET_LOCAL") {
+      if (!inst.args.length) throw new Error(inst.op + " needs an operand");
+      const n = Number(inst.args[0]);
+      if (!Number.isFinite(n)) throw new Error("bad operand: " + inst.args[0]);
+      code.push(n);
+    } else if (inst.op === "JUMP" || inst.op === "JUMP_IF_FALSE") {
+      if (!inst.args.length) throw new Error(inst.op + " needs a label");
+      const t = inst.args[0];
+      const approxIp = (t in labels) ? labels[t] : Number(t);
+      if (!Number.isFinite(approxIp)) throw new Error("bad jump target: " + t);
+      fixups.push({ at: code.length, approxIp });
+      code.push(0);
     }
   }
-  throw new Error('step limit / missing HALT');
+  for (const f of fixups) {
+    if (f.approxIp < 0 || f.approxIp >= emitAt.length) throw new Error("jump out of range");
+    code[f.at] = emitAt[f.approxIp];
+  }
+  return code;
 }
+
+function run(code, maxSteps) {
+  maxSteps = maxSteps || 200000;
+  const localSlots = 16;
+  const stack = new Array(localSlots).fill(0);
+  const frames = [{ base: 0, slotCount: localSlots }];
+  let ip = 0, steps = 0;
+  const output = [];
+  function pop() {
+    const fr = frames[frames.length - 1];
+    if (stack.length <= fr.base + fr.slotCount) throw new Error("stack underflow");
+    return stack.pop();
+  }
+  while (steps++ < maxSteps) {
+    if (ip < 0 || ip >= code.length) throw new Error("ip out of bounds: " + ip);
+    const op = code[ip++];
+    switch (op) {
+      case Op.CONST: stack.push(code[ip++]); break;
+      case Op.ADD: { const b=pop(), a=pop(); stack.push(a+b); break; }
+      case Op.SUB: { const b=pop(), a=pop(); stack.push(a-b); break; }
+      case Op.MUL: { const b=pop(), a=pop(); stack.push(a*b); break; }
+      case Op.DIV: { const b=pop(), a=pop(); if (b===0) throw new Error("division by zero"); stack.push(a/b); break; }
+      case Op.NEG: stack.push(-pop()); break;
+      case Op.LT: { const b=pop(), a=pop(); stack.push(a < b ? 1 : 0); break; }
+      case Op.EQ: { const b=pop(), a=pop(); stack.push(a === b ? 1 : 0); break; }
+      case Op.JUMP: ip = code[ip++]; break;
+      case Op.JUMP_IF_FALSE: {
+        const target = code[ip++];
+        if (pop() === 0) ip = target;
+        break;
+      }
+      case Op.GET_LOCAL: {
+        const slot = code[ip++];
+        const fr = frames[frames.length - 1];
+        stack.push(stack[fr.base + slot]);
+        break;
+      }
+      case Op.SET_LOCAL: {
+        const slot = code[ip++];
+        const fr = frames[frames.length - 1];
+        stack[fr.base + slot] = pop();
+        break;
+      }
+      case Op.PRINT: output.push(String(pop())); break;
+      case Op.POP: pop(); break;
+      case Op.HALT: {
+        const fr = frames[frames.length - 1];
+        return { output, stack: stack.slice(fr.base + fr.slotCount), steps };
+      }
+      default: throw new Error("bad opcode " + op);
+    }
+  }
+  throw new Error("max steps exceeded");
+}
+
+const EX = {
+  arith: "; (3 + 4) * 2 - 1 = 13\nCONST 3\nCONST 4\nADD\nCONST 2\nMUL\nCONST 1\nSUB\nPRINT\nHALT",
+  print: "; hello stack\nCONST 42\nPRINT\nHALT",
+  countdown: "; print 5..1\nCONST 5\nSET_LOCAL 0\nloop:\nGET_LOCAL 0\nPRINT\nGET_LOCAL 0\nCONST 1\nSUB\nSET_LOCAL 0\nGET_LOCAL 0\nCONST 1\nLT\nJUMP_IF_FALSE loop\nHALT",
+  locals: "; a=10, b=32, print a+b\nCONST 10\nSET_LOCAL 0\nCONST 32\nSET_LOCAL 1\nGET_LOCAL 0\nGET_LOCAL 1\nADD\nPRINT\nHALT"
+};
+
+const status = document.getElementById("status");
+const out = document.getElementById("out");
+const stackEl = document.getElementById("stack");
+const codeEl = document.getElementById("code");
+
+function doRun() {
+  try {
+    const code = assemble(codeEl.value);
+    const res = run(code);
+    status.className = "ok";
+    status.textContent = "halted after " + res.steps + " steps · bytecode length " + code.length;
+    out.textContent = res.output.length ? res.output.join("\n") : "(no PRINT)";
+    stackEl.textContent = JSON.stringify(res.stack);
+  } catch (e) {
+    status.className = "err";
+    status.textContent = String(e.message || e);
+    out.textContent = "(error)";
+    stackEl.textContent = "[]";
+  }
+}
+
+document.getElementById("run").onclick = doRun;
+document.querySelectorAll(".chip").forEach(function(btn) {
+  btn.onclick = function() { codeEl.value = EX[btn.getAttribute("data-ex")]; doRun(); };
+});
+codeEl.value = EX.arith;
+doRun();
 </script>
 </body>
 </html>
