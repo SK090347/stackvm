@@ -1,5 +1,7 @@
 # stackvm
 
+
+**Live demo:** https://sk090347.github.io/stackvm/
 Small stack-based bytecode VM I wrote while poking at how interpreters actually run.
 
 You feed it a flat `number[]` of opcodes (or a `.svm` text file), it keeps a value stack + call frames, and chugs along until `HALT`. Nothing fancy — no GC, no objects, just numbers.
